@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b18">
+  <title>견적 승인 메일 Agent — 변화율·메일 미리보기</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #090b18;
+      --panel: #11152a;
+      --panel-deep: #0c1020;
+      --line: #303657;
+      --cyan: #45f3ff;
+      --pink: #ff4fd8;
+      --yellow: #ffe66d;
+      --green: #61ffa2;
+      --muted: #9da6c9;
+      --text: #f5f6ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 28px 18px 40px;
+      background:
+        radial-gradient(ellipse at 50% 0, #1b2041 0, transparent 47%),
+        linear-gradient(180deg, #0c0e1c, var(--ink) 70%);
+      color: var(--text);
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    }
+
+    .app {
+      width: min(100%, 1080px);
+      margin: 0 auto;
+      padding: clamp(16px, 3vw, 30px);
+      border: 1px solid #343a60;
+      background: linear-gradient(145deg, #171b32, #0e1122 58%);
+      box-shadow: 0 0 0 5px #0b0d1a, 0 0 42px #34e9ff1a, 0 24px 70px #0009;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--pink);
+      font: 700 11px/1.2 Consolas, "Courier New", monospace;
+      letter-spacing: .18em;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--cyan);
+      font-size: clamp(23px, 5vw, 36px);
+      font-weight: 900;
+      letter-spacing: .02em;
+      text-shadow: 0 0 15px #45f3ff55;
+    }
+
+    .intro {
+      max-width: 760px;
+      margin: 12px 0 22px;
+      color: #c1c8e3;
+      font-size: 14px;
+      line-height: 1.8;
+      word-break: keep-all;
+    }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0 0 22px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .step {
+      min-height: 58px;
+      padding: 11px 12px;
+      border: 1px solid #2a3152;
+      background: var(--panel-deep);
+      color: #7f89ae;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .step.active {
+      border-color: #45f3ff75;
+      background: #10232d;
+      color: var(--cyan);
+      box-shadow: inset 0 -2px var(--cyan), 0 0 14px #45f3ff14;
+    }
+
+    .step.done {
+      border-color: #61ffa255;
+      color: var(--green);
+    }
+
+    .step-number {
+      display: block;
+      margin-bottom: 4px;
+      font: 700 10px/1 Consolas, "Courier New", monospace;
+      letter-spacing: .1em;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid #746334;
+      background: #211d12;
+      color: #e8ddb4;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .status-tag {
+      flex: 0 0 auto;
+      padding: 4px 7px;
+      background: #ffe66d;
+      color: #17120a;
+      font: 900 10px/1 Consolas, "Courier New", monospace;
+      letter-spacing: .06em;
+    }
+
+    .status-row strong { color: #fff1ae; }
+    .status-row p { margin: 0; }
+
+    .upload-panel {
+      padding: 18px;
+      border: 1px solid #3c456e;
+      background: var(--panel-deep);
+    }
+
+    .upload-panel h2 { margin-bottom: 6px; }
+
+    .upload-help {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .upload-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+    }
+
+    .upload-button {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 17px;
+      border: 0;
+      background: var(--cyan);
+      color: #07101a;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 0 14px #45f3ff40, 4px 4px 0 #168c9b;
+    }
+
+    .upload-button:hover { filter: brightness(1.12); }
+    .upload-button:focus-within { outline: 3px solid white; outline-offset: 4px; }
+    .file-input:focus-visible + .upload-button { outline: 3px solid white; outline-offset: 4px; }
+
+    .file-name {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      color: #e1e6fa;
+      font-size: 12px;
+    }
+
+    .upload-status {
+      min-height: 20px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .upload-status[data-kind="success"] { color: var(--green); }
+    .upload-status[data-kind="error"] { color: #ff9aab; }
+    .upload-status[data-kind="loading"] { color: var(--yellow); }
+
+    .results-section { margin-top: 20px; }
+    .results-section[hidden] { display: none; }
+
+    .results-summary {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: right;
+    }
+
+    .results-table { min-width: 820px; }
+    .results-table td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+    .results-table td.missing { color: #ffbd71; }
+    .results-table input {
+      width: 118px;
+      padding: 8px 9px;
+      border: 1px solid #3c456e;
+      border-radius: 0;
+      background: #10152a;
+      color: var(--text);
+      font: 700 12px/1.2 Consolas, "Courier New", monospace;
+      text-align: right;
+    }
+
+    .results-table input:focus {
+      outline: 2px solid var(--cyan);
+      outline-offset: 1px;
+    }
+
+    .results-table .rate-cell {
+      min-width: 92px;
+      color: var(--green);
+      font-weight: 800;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .results-table .rate-cell.invalid { color: #ffbd71; }
+
+    .warning-note {
+      margin: 10px 0 0;
+      color: #e8ddb4;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 22px 0 10px;
+    }
+
+    h2 {
+      margin: 0;
+      color: #f1f3ff;
+      font-size: 18px;
+      font-weight: 850;
+    }
+
+    .section-note {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      background: var(--panel-deep);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 11px 13px;
+      border-bottom: 1px solid #242b48;
+      vertical-align: middle;
+      font-size: 12px;
+    }
+
+    th {
+      background: #171c34;
+      color: #aeb8db;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      white-space: nowrap;
+    }
+
+    td { color: #e1e6fa; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #151a30; }
+
+    .cell-ref {
+      display: inline-block;
+      min-width: 34px;
+      padding: 4px 7px;
+      border: 1px solid #3c456e;
+      background: #141a30;
+      color: var(--yellow);
+      font: 800 12px/1 Consolas, "Courier New", monospace;
+      text-align: center;
+    }
+
+    .sample-label {
+      color: var(--cyan);
+      font: 700 12px/1.4 Consolas, "Courier New", monospace;
+    }
+
+    .muted { color: var(--muted); }
+
+    .formula-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .formula-card {
+      min-width: 0;
+      padding: 15px;
+      border: 1px solid #2a3152;
+      background: var(--panel-deep);
+    }
+
+    .formula-title {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    code {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--green);
+      font: 700 clamp(13px, 2vw, 16px)/1.5 Consolas, "Courier New", monospace;
+    }
+
+    .zero-note {
+      margin: 10px 0 0;
+      color: #c1c8e3;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .mail-preview {
+      padding: 16px;
+      border: 1px solid #2a3152;
+      background: var(--panel-deep);
+    }
+
+    .mail-preview[hidden] { display: none; }
+
+    .mail-head {
+      display: grid;
+      grid-template-columns: 90px minmax(0, 1fr);
+      gap: 8px 12px;
+      margin-bottom: 13px;
+      color: #e1e6fa;
+      font-size: 12px;
+    }
+
+    .mail-head strong { color: var(--muted); }
+    .blank-value { color: #727d9f; font-style: italic; }
+
+    .mail-body {
+      padding-top: 12px;
+      border-top: 1px solid #242b48;
+      color: #c1c8e3;
+      font-size: 12px;
+      line-height: 1.8;
+      white-space: pre-line;
+    }
+
+    .mail-body strong { color: var(--yellow); }
+
+    .mail-body-text {
+      overflow-x: auto;
+      margin: 0;
+      color: #e1e6fa;
+      font: 12px/1.8 Consolas, "Courier New", "Malgun Gothic", monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .draft-panel {
+      margin-top: 12px;
+      padding: 16px;
+      border: 1px solid #2a3152;
+      background: #10152a;
+    }
+
+    .draft-panel[hidden] { display: none; }
+    .draft-panel h3 { margin: 0 0 6px; font-size: 14px; }
+    .draft-panel p { margin: 0 0 12px; color: var(--muted); font-size: 11px; line-height: 1.65; }
+
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    .secondary-button {
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid #4d587e;
+      background: #171d35;
+      color: #e1e6fa;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .secondary-button:hover { border-color: var(--yellow); color: var(--yellow); }
+    .secondary-button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+
+    .primary-button {
+      min-height: 44px;
+      padding: 0 17px;
+      border: 0;
+      background: var(--cyan);
+      color: #07101a;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 0 14px #45f3ff40, 4px 4px 0 #168c9b;
+    }
+
+    .primary-button:hover { filter: brightness(1.12); }
+    .primary-button:disabled { cursor: not-allowed; filter: grayscale(.7); opacity: .6; }
+
+    .test-data-note {
+      margin-top: 10px !important;
+      color: var(--yellow) !important;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 13px;
+      border-top: 1px solid #2a3152;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .footer strong {
+      color: var(--cyan);
+      font: 700 10px/1 Consolas, "Courier New", monospace;
+      letter-spacing: .08em;
+    }
+
+    @media (max-width: 680px) {
+      body { padding: 12px 9px 24px; }
+      .stepper { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .formula-grid { grid-template-columns: 1fr; }
+      .section-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+      th, td { padding: 9px 10px; }
+      .footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <p class="eyebrow">SALES WORKFLOW · MVP · STEP 04</p>
+      <h1>견적 승인 메일 Agent</h1>
+      <p class="intro">
+        엑셀에서 견적 정보를 읽고, 샘플 형식의 승인 요청 메일 초안을 준비합니다.
+        업로드한 견적을 확인하고 <strong>실적가·PS 변화율과 승인 메일 본문</strong>을 미리 봅니다.
+      </p>
+    </header>
+
+    <ol class="stepper" aria-label="MVP 진행 단계">
+      <li class="step done"><span class="step-number">STEP 01</span>필드 매핑 확인</li>
+      <li class="step done"><span class="step-number">STEP 02</span>엑셀 업로드·추출</li>
+      <li class="step done"><span class="step-number">STEP 03</span>변화율·메일 미리보기</li>
+      <li class="step active"><span class="step-number">STEP 04</span>Outlook 초안</li>
+    </ol>
+
+    <aside class="status-row" aria-label="통합문서 버전 확인">
+      <span class="status-tag">확인 필요</span>
+      <p>
+        연결된 파일을 확인했습니다. 파일명은 <strong>L14.2602</strong>이지만,
+        통합문서 내부 제목은 <strong>L13.2601</strong>로 표시됩니다.
+        현재 파일의 <strong>Indirect (DD)</strong> 시트에서 열 이름을 확인한 뒤 품목 정보를 읽습니다.
+      </p>
+    </aside>
+
+    <section class="upload-panel" aria-labelledby="uploadTitle">
+      <h2 id="uploadTitle">계산 엑셀 업로드</h2>
+      <p class="upload-help">
+        `.xlsx` 파일의 <strong>Indirect (DD)</strong> 시트를 읽습니다.
+        파일은 이 브라우저 안에서만 처리되며 외부로 전송하지 않습니다.
+      </p>
+      <div class="upload-controls">
+        <label>
+          <input class="file-input" id="workbookFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          <span class="upload-button">엑셀 파일 선택</span>
+        </label>
+        <span class="file-name" id="fileName">선택된 파일 없음</span>
+      </div>
+      <p class="upload-status" id="uploadStatus" role="status" aria-live="polite">
+        파일을 선택하면 형번 × 수량과 지정된 견적 열을 추출합니다.
+      </p>
+    </section>
+
+    <section class="results-section" id="resultsSection" aria-labelledby="resultsTitle" hidden>
+      <div class="section-heading">
+        <h2 id="resultsTitle">추출된 품목 정보</h2>
+        <p class="results-summary" id="resultsSummary"></p>
+      </div>
+      <div class="table-wrap">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">형번 × 수량</th>
+              <th scope="col">Cost Reference LPC 26 (KRW)</th>
+              <th scope="col">Special Offer (KRW)</th>
+              <th scope="col">Net Sales (KRW) · SV</th>
+              <th scope="col">SPL</th>
+              <th scope="col">OM · PLP OP</th>
+              <th scope="col">실적가 입력 (KRW)</th>
+              <th scope="col">Special Offer 변화율</th>
+              <th scope="col">PS 입력 (KRW)</th>
+              <th scope="col">LPC 26 / PS 변화율</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <p class="warning-note" id="missingNote" hidden>
+        표시된 빈 값은 원본 시트에서 가져온 값입니다. 다음 단계에서도 임의로 채우지 않고 빈 값으로 유지합니다.
+      </p>
+      <div class="draft-panel">
+        <h3>테스트 입력값</h3>
+        <p>원본 엑셀에 없는 값입니다. 테스트가 필요할 때 첫 번째 품목에만 채웁니다.</p>
+        <button class="secondary-button" id="testValuesButton" type="button">테스트값 적용: 실적가 100,000 · PS 30,000</button>
+        <p class="test-data-note" id="testDataNote" hidden>테스트값을 포함합니다. 실제 승인 전 반드시 실제 값으로 바꾸세요.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="mappingTitle">
+      <div class="section-heading">
+        <h2 id="mappingTitle">엑셀 → 승인 메일 필드 매핑</h2>
+        <span class="section-note">시트: Indirect (DD) · 품목 데이터 행: 14행부터</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">엑셀 열</th>
+              <th scope="col">엑셀 헤더</th>
+              <th scope="col">메일 표기</th>
+              <th scope="col">처리 방식</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="cell-ref">D + E</span></td>
+              <td>SKF Designation + Q'ty</td>
+              <td><span class="sample-label">형번 × 수량</span></td>
+              <td>한 품목 표기에서 형번과 수량을 함께 표시</td>
+            </tr>
+            <tr>
+              <td><span class="cell-ref">H</span></td>
+              <td>Cost Reference LPC 26 [KRW]</td>
+              <td><span class="sample-label">LPC 26</span></td>
+              <td>품목별 기준 원가</td>
+            </tr>
+            <tr>
+              <td><span class="cell-ref">R</span></td>
+              <td>Special Offer [Unit price]</td>
+              <td><span class="sample-label">Special Offer</span></td>
+              <td>실적가 대비 변화율 계산에 사용</td>
+            </tr>
+            <tr>
+              <td><span class="cell-ref">T</span></td>
+              <td>Net sales (Special Offer)</td>
+              <td><span class="sample-label">SV</span></td>
+              <td>메일에는 샘플 표기 SV로 표시</td>
+            </tr>
+            <tr>
+              <td><span class="cell-ref">S</span></td>
+              <td>SPL (Special Offer)</td>
+              <td><span class="sample-label">SPL</span></td>
+              <td>샘플의 SPL 표기 유지</td>
+            </tr>
+            <tr>
+              <td><span class="cell-ref">W</span></td>
+              <td>OM (%) (Special Offer)</td>
+              <td><span class="sample-label">PLP OP</span></td>
+              <td>메일에서는 퍼센트로 표시</td>
+            </tr>
+            <tr>
+              <td><span class="cell-ref">입력</span></td>
+              <td>실적가</td>
+              <td><span class="sample-label">실적가 대비 변화율</span></td>
+              <td>업로드 후 품목별 직접 입력</td>
+            </tr>
+            <tr>
+              <td><span class="cell-ref">입력</span></td>
+              <td>PS</td>
+              <td><span class="sample-label">LPC 26 대비 PS 변화율</span></td>
+              <td>업로드 후 품목별 직접 입력</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="formulaTitle">
+      <div class="section-heading">
+        <h2 id="formulaTitle">확정된 변화율 계산식</h2>
+        <span class="section-note">결과는 소수점 둘째 자리까지 표시 예정</span>
+      </div>
+      <div class="formula-grid">
+        <article class="formula-card">
+          <span class="formula-title">실적가 기준 Special Offer 변화율</span>
+          <code>(Special Offer / 실적가 - 1) × 100</code>
+          <p class="zero-note">실적가가 0이면 계산 불가로 표시합니다.</p>
+        </article>
+        <article class="formula-card">
+          <span class="formula-title">PS 기준 LPC 26 변화율</span>
+          <code>(LPC 26 / PS - 1) × 100</code>
+          <p class="zero-note">PS가 0이면 계산 불가로 표시합니다.</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="previewTitle">
+      <div class="section-heading">
+        <h2 id="previewTitle">승인 메일 본문 미리보기</h2>
+        <span class="section-note">실적가·PS 입력값에 따라 미리보기가 자동 갱신됩니다.</span>
+      </div>
+      <div class="mail-preview" id="mailPreview" hidden>
+        <div class="mail-head">
+          <strong>받는 사람</strong><span class="blank-value">비워 둠</span>
+          <strong>제목</strong><span class="blank-value">비워 둠</span>
+        </div>
+        <div class="mail-body"><pre class="mail-body-text" id="mailBodyText"></pre></div>
+      </div>
+      <p class="upload-status" id="previewEmpty">엑셀을 업로드하면 승인 메일 본문 미리보기가 여기에 표시됩니다.</p>
+      <div class="draft-panel" id="outlookPanel" hidden>
+        <h3>클래식 Outlook 메일 파일</h3>
+        <p>
+          버튼을 누르면 현재 미리보기 내용을 담은 VBScript 파일을 다운로드합니다.
+          파일을 두 번 클릭하면 클래식 Outlook에 받는 사람·참조·제목이 비어 있는 초안을 저장하고 엽니다.
+          메일 발송 기능은 없습니다.
+        </p>
+        <div class="button-row">
+          <button class="primary-button" id="downloadDraftButton" type="button">Outlook 초안 실행 파일(.vbs) 다운로드</button>
+          <span class="upload-status" id="draftStatus" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>다음 단계: 미리보기 확인 후 Outlook 초안 생성</span>
+      <strong>NO SEND · DRAFT ONLY</strong>
+    </footer>
+  </main>
+  <script>
+    (() => {
+      "use strict";
+
+      const fileInput = document.getElementById("workbookFile");
+      const fileName = document.getElementById("fileName");
+      const uploadStatus = document.getElementById("uploadStatus");
+      const resultsSection = document.getElementById("resultsSection");
+      const resultsSummary = document.getElementById("resultsSummary");
+      const resultsBody = document.getElementById("resultsBody");
+      const missingNote = document.getElementById("missingNote");
+      const mailPreview = document.getElementById("mailPreview");
+      const mailBodyText = document.getElementById("mailBodyText");
+      const previewEmpty = document.getElementById("previewEmpty");
+      const outlookPanel = document.getElementById("outlookPanel");
+      const downloadDraftButton = document.getElementById("downloadDraftButton");
+      const draftStatus = document.getElementById("draftStatus");
+      const testValuesButton = document.getElementById("testValuesButton");
+      const testDataNote = document.getElementById("testDataNote");
+
+      const REQUIRED_FIELDS = [
+        { key: "designation", column: "D", label: "SKF Designation" },
+        { key: "quantity", column: "E", label: "Q'ty" },
+        { key: "lpc26", column: "H", label: "Cost Reference LPC 26" },
+        { key: "specialOffer", column: "R", label: "Special Offer" },
+        { key: "netSales", column: "T", label: "Net Sales" },
+        { key: "spl", column: "S", label: "SPL" },
+        { key: "om", column: "W", label: "OM" }
+      ];
+      let currentItems = [];
+
+      function setStatus(message, kind) {
+        uploadStatus.textContent = message;
+        uploadStatus.dataset.kind = kind || "";
+      }
+
+      function normalizePath(path) {
+        const parts = [];
+        for (const part of path.replace(/\\/g, "/").split("/")) {
+          if (!part || part === ".") continue;
+          if (part === "..") parts.pop();
+          else parts.push(part);
+        }
+        return parts.join("/");
+      }
+
+      function readZipEntries(buffer) {
+        const view = new DataView(buffer);
+        const bytes = new Uint8Array(buffer);
+        const decoder = new TextDecoder("utf-8");
+        const minSearch = Math.max(0, view.byteLength - 22 - 65535);
+        let eocd = -1;
+
+        for (let offset = view.byteLength - 22; offset >= minSearch; offset -= 1) {
+          if (view.getUint32(offset, true) === 0x06054b50) {
+            eocd = offset;
+            break;
+          }
+        }
+        if (eocd < 0) throw new Error("정상적인 XLSX ZIP 구조를 찾을 수 없습니다.");
+
+        const entryCount = view.getUint16(eocd + 10, true);
+        let cursor = view.getUint32(eocd + 16, true);
+        const entries = new Map();
+
+        for (let index = 0; index < entryCount; index += 1) {
+          if (view.getUint32(cursor, true) !== 0x02014b50) {
+            throw new Error("XLSX 파일의 압축 목록을 읽을 수 없습니다.");
+          }
+          const flags = view.getUint16(cursor + 8, true);
+          const method = view.getUint16(cursor + 10, true);
+          const compressedSize = view.getUint32(cursor + 20, true);
+          const fileNameLength = view.getUint16(cursor + 28, true);
+          const extraLength = view.getUint16(cursor + 30, true);
+          const commentLength = view.getUint16(cursor + 32, true);
+          const localOffset = view.getUint32(cursor + 42, true);
+          const nameStart = cursor + 46;
+          const name = decoder.decode(bytes.subarray(nameStart, nameStart + fileNameLength));
+          entries.set(name, { flags, method, compressedSize, localOffset });
+          cursor = nameStart + fileNameLength + extraLength + commentLength;
+        }
+        return { entries, view, bytes };
+      }
+
+      async function readZipEntry(zip, path) {
+        const entry = zip.entries.get(path);
+        if (!entry) throw new Error(`엑셀 내부 파일을 찾을 수 없습니다: ${path}`);
+        if (entry.flags & 1) throw new Error("암호가 설정된 엑셀 파일은 읽을 수 없습니다.");
+
+        const view = zip.view;
+        const offset = entry.localOffset;
+        if (view.getUint32(offset, true) !== 0x04034b50) {
+          throw new Error(`엑셀 내부 파일 구조가 올바르지 않습니다: ${path}`);
+        }
+        const nameLength = view.getUint16(offset + 26, true);
+        const extraLength = view.getUint16(offset + 28, true);
+        const start = offset + 30 + nameLength + extraLength;
+        const compressed = zip.bytes.slice(start, start + entry.compressedSize);
+
+        if (entry.method === 0) return new TextDecoder("utf-8").decode(compressed);
+        if (entry.method !== 8) throw new Error("지원하지 않는 엑셀 압축 방식입니다.");
+        if (typeof DecompressionStream === "undefined") {
+          throw new Error("이 브라우저는 XLSX 압축 해제를 지원하지 않습니다. 최신 Edge 또는 Chrome에서 다시 시도해 주세요.");
+        }
+
+        let stream;
+        try {
+          stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+        } catch (error) {
+          throw new Error("이 브라우저의 XLSX 압축 해제 기능을 사용할 수 없습니다. 최신 Edge 또는 Chrome에서 다시 시도해 주세요.");
+        }
+        return await new Response(stream).text();
+      }
+
+      function parseXml(text, label) {
+        const document = new DOMParser().parseFromString(text, "application/xml");
+        if (document.querySelector("parsererror")) throw new Error(`${label} XML을 읽을 수 없습니다.`);
+        return document;
+      }
+
+      function cellValue(cell, sharedStrings) {
+        const type = cell.getAttribute("t");
+        if (type === "inlineStr") {
+          return Array.from(cell.getElementsByTagNameNS("*", "t"))
+            .map((node) => node.textContent || "")
+            .join("");
+        }
+        const value = cell.getElementsByTagNameNS("*", "v")[0];
+        if (!value) return "";
+        if (type === "s") {
+          const index = Number(value.textContent);
+          return Number.isInteger(index) ? (sharedStrings[index] ?? "") : "";
+        }
+        return value.textContent || "";
+      }
+
+      async function readWorkbook(file) {
+        const zip = readZipEntries(await file.arrayBuffer());
+        const workbookXml = parseXml(await readZipEntry(zip, "xl/workbook.xml"), "통합문서");
+        const relationshipsXml = parseXml(
+          await readZipEntry(zip, "xl/_rels/workbook.xml.rels"),
+          "시트 연결 정보"
+        );
+        const relationshipTargets = new Map(
+          Array.from(relationshipsXml.getElementsByTagNameNS("*", "Relationship"))
+            .map((relationship) => [
+              relationship.getAttribute("Id"),
+              relationship.getAttribute("Target")
+            ])
+        );
+        const sheets = Array.from(workbookXml.getElementsByTagNameNS("*", "sheet"));
+        const targetSheet = sheets.find((sheet) => sheet.getAttribute("name") === "Indirect (DD)");
+        if (!targetSheet) {
+          throw new Error("통합문서에서 'Indirect (DD)' 시트를 찾지 못했습니다.");
+        }
+
+        const relationshipId = targetSheet.getAttributeNS(
+          "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+          "id"
+        );
+        const targetPath = relationshipTargets.get(relationshipId);
+        if (!targetPath) throw new Error("'Indirect (DD)' 시트의 파일 연결 정보를 찾지 못했습니다.");
+        const sheetPath = targetPath.startsWith("/")
+          ? normalizePath(targetPath)
+          : normalizePath(`xl/${targetPath}`);
+
+        let sharedStrings = [];
+        if (zip.entries.has("xl/sharedStrings.xml")) {
+          const sharedXml = parseXml(await readZipEntry(zip, "xl/sharedStrings.xml"), "문자열 목록");
+          sharedStrings = Array.from(sharedXml.getElementsByTagNameNS("*", "si"))
+            .map((item) => Array.from(item.getElementsByTagNameNS("*", "t"))
+              .map((node) => node.textContent || "")
+              .join(""));
+        }
+
+        const sheetXml = parseXml(await readZipEntry(zip, sheetPath), "Indirect (DD) 시트");
+        const rows = Array.from(sheetXml.getElementsByTagNameNS("*", "row"));
+        const headerRow = rows.find((row) => row.getAttribute("r") === "13");
+        if (!headerRow) throw new Error("Indirect (DD) 시트의 13행 열 제목을 찾지 못했습니다.");
+
+        for (const field of REQUIRED_FIELDS) {
+          const headerCell = Array.from(headerRow.getElementsByTagNameNS("*", "c"))
+            .find((cell) => cell.getAttribute("r") === `${field.column}13`);
+          const header = headerCell ? cellValue(headerCell, sharedStrings).replace(/\s+/g, " ").trim() : "";
+          if (!header || !header.toLowerCase().includes(field.label.toLowerCase())) {
+            throw new Error(
+              `열 ${field.column}의 제목이 예상과 다릅니다. "${field.label}"을 찾을 수 없어 이 파일을 안전하게 처리하지 않았습니다.`
+            );
+          }
+        }
+
+        const items = [];
+        for (const row of rows) {
+          const rowNumber = Number(row.getAttribute("r"));
+          if (!Number.isInteger(rowNumber) || rowNumber < 14) continue;
+          const values = new Map();
+          for (const cell of row.getElementsByTagNameNS("*", "c")) {
+            const address = cell.getAttribute("r");
+            const column = address.match(/^[A-Z]+/i)?.[0]?.toUpperCase();
+            if (column) values.set(column, cellValue(cell, sharedStrings).trim());
+          }
+
+          const rowLabel = `${values.get("A") || ""} ${values.get("T") || ""}`;
+          if (/\btotal\b/i.test(rowLabel)) continue;
+          const hasNumericOfferData = ["H", "R", "T", "S", "W"].some((column) => {
+            const value = values.get(column) || "";
+            return value !== "" && Number.isFinite(Number(value));
+          });
+          const quantity = values.get("E") || "";
+          const hasItemData = Boolean(
+            values.get("B") ||
+            (quantity !== "" && Number.isFinite(Number(quantity))) ||
+            hasNumericOfferData
+          );
+          if (!hasItemData) continue;
+
+          const item = { rowNumber };
+          for (const field of REQUIRED_FIELDS) item[field.key] = values.get(field.column) || "";
+          items.push(item);
+        }
+
+        if (items.length === 0) {
+          throw new Error("Indirect (DD) 시트 14행 이후에서 SKF Designation이 있는 품목을 찾지 못했습니다.");
+        }
+        return items;
+      }
+
+      function formatNumber(value, key) {
+        if (value === "") return "";
+        const number = Number(value);
+        if (!Number.isFinite(number)) return value;
+        if (key === "om") {
+          return `${new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 2 }).format(
+            Math.abs(number) <= 1 ? number * 100 : number
+          )}%`;
+        }
+        return new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 2 }).format(number);
+      }
+
+      function rateFor(numerator, denominator) {
+        if (numerator === "" || denominator === "") return { text: "", invalid: false };
+        const top = Number(numerator);
+        const bottom = Number(denominator);
+        if (!Number.isFinite(top) || !Number.isFinite(bottom)) return { text: "", invalid: false };
+        if (bottom === 0) return { text: "계산 불가", invalid: true };
+        const percent = (top / bottom - 1) * 100;
+        return {
+          text: `${new Intl.NumberFormat("ko-KR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }).format(percent)}%`,
+          invalid: false
+        };
+      }
+
+      function createInput(item, index, field, label) {
+        const input = document.createElement("input");
+        input.type = "number";
+        input.step = "any";
+        input.inputMode = "decimal";
+        input.autocomplete = "off";
+        input.value = item[field];
+        input.dataset.index = String(index);
+        input.dataset.field = field;
+        input.setAttribute("aria-label", `${item.designation || `품목 ${index + 1}`} ${label} 입력`);
+        return input;
+      }
+
+      function setRateCell(cell, result) {
+        cell.textContent = result.text;
+        cell.classList.toggle("invalid", result.invalid);
+        cell.classList.toggle("missing", !result.text);
+      }
+
+      function makePreviewLine(value, suffix) {
+        return value === "" ? "" : `${value}${suffix}`;
+      }
+
+      function renderMailPreview() {
+        if (currentItems.length === 0) {
+          mailPreview.hidden = true;
+          previewEmpty.hidden = false;
+          return;
+        }
+
+        const sections = currentItems.map((item, index) => {
+          const designationAndQuantity = item.designation
+            ? `${item.designation} × ${item.quantity}`
+            : item.quantity
+              ? `× ${item.quantity}`
+              : "";
+          const offerRate = rateFor(item.specialOffer, item.actualPrice);
+          const psRate = rateFor(item.lpc26, item.ps);
+          const offerRateText = offerRate.text ? `${offerRate.text}` : "";
+          const psRateText = psRate.text ? `${psRate.text}` : "";
+          return [
+            `${index + 1}. ${designationAndQuantity}`,
+            `기준 원가(LPC 26): ${makePreviewLine(formatNumber(item.lpc26, "lpc26"), " KRW")} / 제안 단가(Special Offer): ${makePreviewLine(formatNumber(item.specialOffer, "specialOffer"), " KRW")}`,
+            `제안 금액(SV): ${makePreviewLine(formatNumber(item.netSales, "netSales"), " KRW")} / 수익 지표(SPL): ${formatNumber(item.spl, "spl")} / 영업이익률(PLP OP): ${formatNumber(item.om, "om")}`,
+            `실적가: ${makePreviewLine(formatNumber(item.actualPrice, "actualPrice"), " KRW")} / 실적가 대비 Special Offer 변화율: ${offerRateText}`,
+            `PS: ${makePreviewLine(formatNumber(item.ps, "ps"), " KRW")} / PS 대비 LPC 26 변화율: ${psRateText}`
+          ].join("\n");
+        });
+
+        const hasTestValues = currentItems.some((item) => item.testValues === true);
+        mailBodyText.textContent = [
+          ...(hasTestValues ? ["[TEST DATA: 테스트 데이터입니다. 발송 전 실제 값으로 교체하세요]", ""] : []),
+          "안녕하세요.",
+          "",
+          "하기 견적 요청 건의 제출을 위해 아래 품목별 제안 조건을 확인하시고 검토 및 승인 부탁드립니다.",
+          "",
+          "견적 요청 품목 및 제안 조건:",
+          "",
+          ...sections.flatMap((section, index) => index === 0 ? [section] : ["", section]),
+          "",
+          "상기 내용 검토 후 승인해 주시면 견적 제출을 진행하겠습니다.",
+          "",
+          "감사합니다."
+        ].join("\n");
+        mailPreview.hidden = false;
+        previewEmpty.hidden = true;
+        outlookPanel.hidden = false;
+        testDataNote.hidden = !hasTestValues;
+      }
+
+      function renderRows() {
+        resultsBody.replaceChildren();
+        const missingCount = currentItems.reduce(
+          (count, item) => count + REQUIRED_FIELDS.filter((field) => !item[field.key]).length,
+          0
+        );
+
+        for (const [index, item] of currentItems.entries()) {
+          const row = document.createElement("tr");
+          const itemCell = document.createElement("td");
+          itemCell.textContent = item.designation
+            ? `${item.designation} × ${item.quantity}`
+            : item.quantity
+              ? `× ${item.quantity}`
+              : "";
+          if (!item.designation || !item.quantity) itemCell.classList.add("missing");
+          row.append(itemCell);
+
+          const numericFields = [
+            ["lpc26", "lpc26"],
+            ["specialOffer", "specialOffer"],
+            ["netSales", "netSales"],
+            ["spl", "spl"],
+            ["om", "om"]
+          ];
+          for (const [field, formatKey] of numericFields) {
+            const cell = document.createElement("td");
+            cell.className = "numeric";
+            cell.textContent = formatNumber(item[field], formatKey);
+            if (!item[field]) cell.classList.add("missing");
+            row.append(cell);
+          }
+
+          for (const [field, label, numerator, denominator] of [
+            ["actualPrice", "실적가", item.specialOffer, item.actualPrice],
+            ["ps", "PS", item.lpc26, item.ps]
+          ]) {
+            const inputCell = document.createElement("td");
+            inputCell.append(createInput(item, index, field, label));
+            row.append(inputCell);
+
+            const rateCell = document.createElement("td");
+            rateCell.className = "rate-cell";
+            setRateCell(rateCell, rateFor(numerator, denominator));
+            row.append(rateCell);
+          }
+
+          row.title = `원본 시트 ${item.rowNumber}행`;
+          resultsBody.append(row);
+        }
+
+        resultsSummary.textContent = `${currentItems.length}개 품목 · 원본 시트: Indirect (DD)`;
+        missingNote.hidden = missingCount === 0;
+        renderMailPreview();
+      }
+
+      function renderResults(items, name) {
+        currentItems = items.map((item) => ({ ...item, actualPrice: "", ps: "" }));
+        resultsSection.hidden = false;
+        fileName.textContent = name;
+        draftStatus.textContent = "";
+        renderRows();
+        setStatus(
+          currentItems.some((item) => REQUIRED_FIELDS.some((field) => !item[field.key]))
+            ? `${items.length}개 품목을 추출했습니다. 원본의 빈 필드는 빈 값으로 유지합니다.`
+            : `${items.length}개 품목을 추출했습니다. 파일을 이 브라우저 밖으로 전송하지 않았습니다.`,
+          "success"
+        );
+      }
+
+      resultsBody.addEventListener("input", (event) => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement)) return;
+        const index = Number(input.dataset.index);
+        const field = input.dataset.field;
+        if (!Number.isInteger(index) || !currentItems[index] || !["actualPrice", "ps"].includes(field)) return;
+        currentItems[index][field] = input.value;
+        currentItems[index].testValues = false;
+        const row = input.closest("tr");
+        const rateCellIndex = field === "actualPrice" ? 7 : 9;
+        const result = field === "actualPrice"
+          ? rateFor(currentItems[index].specialOffer, currentItems[index].actualPrice)
+          : rateFor(currentItems[index].lpc26, currentItems[index].ps);
+        setRateCell(row.children[rateCellIndex], result);
+        renderMailPreview();
+      });
+
+      testValuesButton.addEventListener("click", () => {
+        if (currentItems.length === 0) return;
+        currentItems[0].actualPrice = "100000";
+        currentItems[0].ps = "30000";
+        currentItems[0].testValues = true;
+        renderRows();
+        resultsBody.querySelector('input[data-index="0"][data-field="actualPrice"]')?.focus();
+        setStatus("첫 번째 품목에 테스트 실적가 100,000원과 PS 30,000원을 적용했습니다.", "success");
+      });
+
+      function createOutlookDraftScript(body, isTestData) {
+        const bytes = new TextEncoder().encode(body);
+        let binary = "";
+        for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+          binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+        }
+        const encodedBody = btoa(binary);
+        const testGuard = isTestData
+          ? [
+              'If InStr(body, "TEST DATA:") = 0 Then',
+              '    MsgBox "Test data marker is missing. Draft creation was stopped.", vbCritical',
+              "    WScript.Quit 1",
+              "End If"
+            ].join("\r\n")
+          : "";
+
+        return [
+          "Option Explicit",
+          "",
+          `Dim body`,
+          `body = DecodeUtf8Base64("${encodedBody}")`,
+          testGuard,
+          "",
+          "If WScript.Arguments.Count > 0 Then",
+          '    If LCase(WScript.Arguments(0)) = "--verify" Then',
+          '        WScript.Echo "Script is valid. Body decoded successfully. No Outlook draft was created."',
+          "        WScript.Quit 0",
+          "    End If",
+          '    WScript.Echo "Unknown argument."',
+          "    WScript.Quit 2",
+          "End If",
+          "",
+          "Dim outlook, draft",
+          "On Error Resume Next",
+          'Set outlook = CreateObject("Outlook.Application")',
+          "If Err.Number <> 0 Then",
+          '    MsgBox "Classic Outlook could not be opened: " & Err.Description, vbCritical',
+          "    WScript.Quit 1",
+          "End If",
+          "Err.Clear",
+          'Set draft = outlook.CreateItem(0)',
+          "If Err.Number <> 0 Then",
+          '    MsgBox "Could not create an Outlook draft: " & Err.Description, vbCritical',
+          "    WScript.Quit 1",
+          "End If",
+          "Err.Clear",
+          'draft.To = ""',
+          'draft.CC = ""',
+          'draft.Subject = ""',
+          "draft.BodyFormat = 1",
+          "draft.Body = body",
+          "draft.Save",
+          "If Err.Number <> 0 Then",
+          '    MsgBox "Could not save the Outlook draft: " & Err.Description, vbCritical',
+          "    WScript.Quit 1",
+          "End If",
+          "Err.Clear",
+          "draft.Display",
+          "If Err.Number <> 0 Then",
+          '    MsgBox "Draft was saved, but Outlook could not display it: " & Err.Description, vbExclamation',
+          "    WScript.Quit 1",
+          "End If",
+          "On Error GoTo 0",
+          "Set draft = Nothing",
+          "Set outlook = Nothing",
+          "",
+          "Function DecodeUtf8Base64(value)",
+          "    Dim xml, node, stream",
+          '    Set xml = CreateObject("MSXML2.DOMDocument.6.0")',
+          '    Set node = xml.createElement("base64")',
+          '    node.DataType = "bin.base64"',
+          "    node.Text = value",
+          '    Set stream = CreateObject("ADODB.Stream")',
+          "    stream.Type = 1",
+          "    stream.Open",
+          "    stream.Write node.nodeTypedValue",
+          "    stream.Position = 0",
+          "    stream.Type = 2",
+          '    stream.Charset = "utf-8"',
+          "    DecodeUtf8Base64 = stream.ReadText",
+          "    stream.Close",
+          "    Set stream = Nothing",
+          "    Set node = Nothing",
+          "    Set xml = Nothing",
+          "End Function"
+        ].filter(Boolean).join("\r\n");
+      }
+
+      downloadDraftButton.addEventListener("click", () => {
+        if (currentItems.length === 0 || !mailBodyText.textContent) {
+          draftStatus.textContent = "먼저 엑셀을 업로드해 주세요.";
+          return;
+        }
+        const isTestData = currentItems.some((item) => item.testValues === true);
+        const script = createOutlookDraftScript(mailBodyText.textContent, isTestData);
+        const blob = new Blob([script], { type: "text/vbscript;charset=us-ascii" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = isTestData
+          ? "Outlook-Approval-Draft-TEST.vbs"
+          : "Outlook-Approval-Draft.vbs";
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        draftStatus.textContent = "VBScript를 다운로드했습니다. 두 번 클릭해 실행하면 Outlook 초안을 저장하고 엽니다. 발송은 되지 않습니다.";
+      });
+
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+
+        currentItems = [];
+        resultsSection.hidden = true;
+        resultsBody.replaceChildren();
+        missingNote.hidden = true;
+        mailPreview.hidden = true;
+        outlookPanel.hidden = true;
+        previewEmpty.hidden = false;
+        testDataNote.hidden = true;
+        fileName.textContent = file.name;
+
+        if (!file.name.toLowerCase().endsWith(".xlsx")) {
+          setStatus("`.xlsx` 형식의 Excel 통합문서를 선택해 주세요.", "error");
+          return;
+        }
+
+        setStatus("통합문서에서 시트와 품목 정보를 읽는 중입니다…", "loading");
+        try {
+          const items = await readWorkbook(file);
+          renderResults(items, file.name);
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : "엑셀 파일을 읽지 못했습니다.", "error");
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
